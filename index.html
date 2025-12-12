@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Constelaciones 3D · Lienzo Base</title>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #f5f7fb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+#info {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.9);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+
+<body>
+<div id="app"></div>
+<div id="info">
+  Arrastra los muñecos · Rueda = zoom · Click derecho = rotar cámara
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container = document.getElementById('app');
+
+/* ---------- ESCENA ---------- */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf5f7fb);
+
+/* ---------- CÁMARA ---------- */
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  500
+);
+camera.position.set(0, 18, 30);
+
+/* ---------- RENDER ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+/* ---------- CONTROLES ---------- */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+/* ---------- LUCES (SALÓN CLARO) ---------- */
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+
+const mainLight = new THREE.DirectionalLight(0xffffff, 0.6);
+mainLight.position.set(10, 20, 10);
+mainLight.castShadow = true;
+scene.add(mainLight);
+
+/* ---------- SUELO ---------- */
+const floor = new THREE.Mesh(
+  new THREE.CircleGeometry(14, 64),
+  new THREE.MeshStandardMaterial({
+    color: 0xdbeafe,
+    roughness: 0.6
+  })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* ---------- MUÑECOS BASE ---------- */
+const dolls = [];
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selected = null;
+
+function createDoll(color = 0x93c5fd) {
+  const group = new THREE.Group();
+
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.6, 2.2, 16),
+    new THREE.MeshStandardMaterial({ color })
+  );
+  body.castShadow = true;
+  group.add(body);
+
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 20, 20),
+    new THREE.MeshStandardMaterial({ color: 0xffe0bd })
+  );
+  head.position.y = 1.6;
+  head.castShadow = true;
+  group.add(head);
+
+  group.position.set(
+    (Math.random() - 0.5) * 8,
+    1.1,
+    (Math.random() - 0.5) * 8
+  );
+
+  scene.add(group);
+  dolls.push(group);
+}
+
+/* Crear una línea inicial de muñecos */
+for (let i = 0; i < 8; i++) {
+  createDoll();
+}
+
+/* ---------- INTERACCIÓN ---------- */
+const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+let dragging = false;
+
+function getIntersects(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  return raycaster.intersectObjects(dolls, true);
+}
+
+window.addEventListener('mousedown', e => {
+  const hits = getIntersects(e);
+  if (hits.length) {
+    selected = hits[0].object.parent;
+    dragging = true;
+    controls.enabled = false;
+  }
+});
+
+window.addEventListener('mousemove', e => {
+  if (!dragging || !selected) return;
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const pos = new THREE.Vector3();
+  raycaster.ray.intersectPlane(plane, pos);
+  selected.position.x = pos.x;
+  selected.position.z = pos.z;
+});
+
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  selected = null;
+  controls.enabled = true;
+});
+
+/* ---------- RESIZE ---------- */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ---------- LOOP ---------- */
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+</script>
+</body>
+</html>
