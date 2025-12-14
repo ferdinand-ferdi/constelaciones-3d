@@ -1,398 +1,75 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Universo Sistémico Latam</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
-
-  <style>
-    :root { --primary: #d4af37; --bg-dark: #121212; --panel-bg: #1e1e1e; }
-    body { margin: 0; overflow: hidden; background-color: var(--bg-dark); font-family: 'Segoe UI', Roboto, sans-serif; color: #fff; height: 100vh; }
-    
-    #app-container { display: flex; height: 100%; width: 100%; }
-
-    /* --- PANEL LATERAL (BUILDER) --- */
-    #sidebar {
-      width: 280px; min-width: 280px; background: var(--panel-bg);
-      border-right: 1px solid #333; padding: 20px; display: flex; flex-direction: column; gap: 15px;
-      box-shadow: 5px 0 15px rgba(0,0,0,0.3); z-index: 20; overflow-y: auto;
-    }
-    h1 { font-size: 1.1rem; text-transform: uppercase; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin: 0 0 15px 0; }
-    .control-group label { display: block; font-size: 0.75rem; font-weight: bold; color: #888; margin-bottom: 5px; }
-    select { width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; outline: none; }
-    select:focus { border-color: var(--primary); }
-    #btnSpawn {
-      width: 100%; padding: 12px; background: linear-gradient(45deg, var(--primary), #b08d2b);
-      border: none; color: #000; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px;
-      box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3); transition: transform 0.1s;
-    }
-    #btnSpawn:active { transform: scale(0.98); }
-
-    /* --- ÁREA 3D --- */
-    #canvas-container { flex: 1; position: relative; }
-    
-    /* UI FLOTANTE INFERIOR */
-    #ui-controls {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(30, 30, 30, 0.9); padding: 10px 25px; border-radius: 50px;
-      border: 1px solid #444; display: flex; gap: 20px; align-items: center;
-    }
-    .btn-tool { background: none; border: none; cursor: pointer; color: #aaa; font-size: 1.4rem; transition: 0.2s; }
-    .btn-tool:hover { color: var(--primary); transform: scale(1.1); }
-    .btn-delete { color: #e74c3c; } .btn-delete:hover { color: #c0392b; }
-    input[type=range] { accent-color: var(--primary); width: 100px; }
-
-    #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; color:var(--primary); display:flex; justify-content:center; align-items:center; z-index:9999; transition:opacity 0.5s; font-weight:bold;}
-  </style>
-</head>
-<body>
-  <div id="loader">Cargando Universo Latinoamericano...</div>
-
-  <div id="app-container">
-    <aside id="sidebar">
-      <h1>Constructor</h1>
-      <div class="control-group">
-        <label>Género/Edad</label>
-        <select id="newGender">
-          <option value="f_adult">Mujer Adulta</option>
-          <option value="m_adult">Hombre Adulto</option>
-          <option value="f_elder">Anciana</option>
-          <option value="m_elder">Anciano</option>
-          <option value="f_child">Niña</option>
-          <option value="m_child">Niño</option>
-          <option value="baby">Bebé</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label>Tono de Piel</label>
-        <select id="newSkin">
-          <option value="#3b2416">Oscura (Ébano)</option>
-          <option value="#5d4037">Morena Oscura</option>
-          <option value="#8d5524" selected>Morena Media</option>
-          <option value="#c68642">Trigueña / Mestiza</option>
-          <option value="#dcb898">Clara Dorada</option>
-          <option value="#ffcd94">Pálida Rosada</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label>Vestimenta</label>
-        <select id="newClothes">
-          <option value="#b71c1c">Rojo Intenso</option>
-          <option value="#15803d">Verde Selva</option>
-          <option value="#1d4ed8">Azul Océano</option>
-          <option value="#eab308">Amarillo Sol</option>
-          <option value="#fff">Blanco Tradicional</option>
-          <option value="#333">Negro Urbano</option>
-          <option value="#7c2d12">Terracota</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label>Expresión</label>
-        <select id="newExp">
-          <option value="neutro">😐 Neutro</option>
-          <option value="alegre">🙂 Alegre</option>
-          <option value="efusivo">😄 Efusivo</option>
-          <option value="triste">😢 Triste</option>
-          <option value="enojado">😠 Enojado</option>
-          <option value="iracundo">😡 Iracundo</option>
-          <option value="picaron">😏 Picarón</option>
-        </select>
-      </div>
-      <button id="btnSpawn">AGREGAR AL CENTRO</button>
-    </aside>
-
-    <main id="canvas-container">
-      <div id="ui-controls">
-        <span style="color:var(--primary); font-size:0.9rem">Girar:</span>
-        <input type="range" id="rotSlider" min="0" max="6.28" step="0.1" value="0">
-        <div style="width:1px; height:20px; background:#555; margin:0 10px;"></div>
-        <button class="btn-tool" id="btnReset" title="Reiniciar Posiciones">🔄</button>
-        <button class="btn-tool btn-delete" id="btnDelete" title="Eliminar Seleccionado">🗑️</button>
-        <button class="btn-tool" id="btnFoto" title="Guardar Foto">📷</button>
-      </div>
-    </main>
-  </div>
-
-  <script>
-    // === VARIABLES GLOBALES ===
-    let scene, camera, renderer, controls, raycaster, mouse;
-    let objects = []; // Lista de muñecos interactivos
-    let selectedObject = null;
-    let selectionRing = null;
-    let isDragging = false;
-    let draggedObject = null;
-    let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const container = document.getElementById('canvas-container');
-
-    // --- MOTOR DE CARAS (CANVAS 2D) ---
-    const FaceEngine = {
-      canvas: document.createElement('canvas'), ctx: null,
-      init() { this.canvas.width=512; this.canvas.height=512; this.ctx=this.canvas.getContext('2d'); },
-      createTexture(d) {
-        const ctx=this.ctx, w=512, h=512, cx=w/2, cy=h/2+50;
-        ctx.fillStyle = d.skin; ctx.fillRect(0,0,w,h); // Fondo Piel
-
-        // Arrugas ancianos
-        if(d.age==='elder'){
-          ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=4;
-          ctx.beginPath(); ctx.moveTo(cx-70,cy-150); ctx.lineTo(cx+70,cy-150); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(cx-110,cy-40); ctx.lineTo(cx-130,cy-30); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(cx+110,cy-40); ctx.lineTo(cx+130,cy-30); ctx.stroke();
-        }
-        ctx.lineCap='round'; ctx.lineJoin='round';
-
-        const drawEye=(x,y,s)=>{
-          ctx.fillStyle='#111'; ctx.strokeStyle='#111';
-          if(s==='dot'){ ctx.beginPath();ctx.arc(x,y,28,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+10,y-10,8,0,Math.PI*2);ctx.fill();}
-          else if(s==='angry'){ ctx.save();ctx.beginPath();ctx.rect(x-40,y-25,80,50);ctx.clip();ctx.beginPath();ctx.arc(x,y+15,32,0,Math.PI*2);ctx.fill();ctx.restore();}
-          else if(s==='closed'){ ctx.lineWidth=9;ctx.beginPath();ctx.arc(x,y+10,28,Math.PI,0);ctx.stroke();}
-          else if(s==='happy'){ ctx.lineWidth=9;ctx.beginPath();ctx.arc(x,y-10,28,0.2*Math.PI,0.8*Math.PI);ctx.stroke();}
-        };
-        const drawBrow=(x,y,s)=>{
-          ctx.lineWidth=12; ctx.strokeStyle=d.hair||'#222'; ctx.beginPath();
-          if(s==='neu'){ctx.moveTo(x-35,y);ctx.lineTo(x+35,y);}
-          else if(s==='ang'){ctx.moveTo(x-35,y-20);ctx.lineTo(x+35,y+20);}
-          else if(s==='sad'){ctx.moveTo(x-30,y+20);ctx.lineTo(x+30,y-10);}
-          else if(s==='rai'){ctx.moveTo(x-30,y-20);ctx.quadraticCurveTo(x,y-45,x+30,y-20);}
-          ctx.stroke();
-        };
-        const drawMouth=(x,y,s)=>{
-          ctx.lineWidth=9; ctx.strokeStyle='#521'; ctx.fillStyle='#832'; ctx.beginPath();
-          if(s==='smile'){ctx.arc(x,y-5,50,0.2*Math.PI,0.8*Math.PI);ctx.stroke();}
-          else if(s==='neu'){ctx.moveTo(x-35,y+15);ctx.lineTo(x+35,y+15);ctx.stroke();}
-          else if(s==='sad'){ctx.arc(x,y+60,45,1.2*Math.PI,1.8*Math.PI);ctx.stroke();}
-          else if(s==='open'){ctx.ellipse(x,y+25,30,35,0,0,Math.PI*2);ctx.fill();}
-          else if(s==='smirk'){ctx.moveTo(x-35,y+20);ctx.quadraticCurveTo(x,y+30,x+40,y);ctx.stroke();}
-          else if(s==='grit'){ctx.fillStyle='#fff';ctx.rect(x-35,y+5,70,25);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-35,y+17);ctx.lineTo(x+35,y+17);ctx.lineWidth=2;ctx.stroke();}
-        };
-
-        const ex=d.exp, lx=cx-85, rx=cx+85, ey=cy-45, by=cy-120, my=cy+55;
-        if(ex==='neutro'){drawEye(lx,ey,'dot');drawEye(rx,ey,'dot');drawBrow(lx,by,'neu');drawBrow(rx,by,'neu');drawMouth(cx,my,'neu');}
-        else if(ex==='alegre'){drawEye(lx,ey,'dot');drawEye(rx,ey,'dot');drawBrow(lx,by-10,'neu');drawBrow(rx,by-10,'neu');drawMouth(cx,my,'smile');}
-        else if(ex==='efusivo'){drawEye(lx,ey,'happy');drawEye(rx,ey,'happy');drawBrow(lx,by-20,'rai');drawBrow(rx,by-20,'rai');drawMouth(cx,my,'open');}
-        else if(ex==='triste'){drawEye(lx,ey,'dot');drawEye(rx,ey,'dot');drawBrow(lx,by,'sad');drawBrow(rx,by,'sad');drawMouth(cx,my,'sad');}
-        else if(ex==='enojado'){drawEye(lx,ey,'angry');drawEye(rx,ey,'angry');drawBrow(lx,by,'ang');drawBrow(rx,by,'ang');drawMouth(cx,my,'neu');}
-        else if(ex==='iracundo'){drawEye(lx,ey,'angry');drawEye(rx,ey,'angry');drawBrow(lx,by+10,'ang');drawBrow(rx,by+10,'ang');drawMouth(cx,my,'grit');}
-        else if(ex==='picaron'){drawEye(lx,ey,'dot');drawEye(rx,ey,'dot');drawBrow(lx,by,'ang');drawBrow(rx,by-25,'rai');drawMouth(cx,my,'smirk');}
-
-        const tex=new THREE.CanvasTexture(this.canvas); tex.encoding=THREE.sRGBEncoding; return tex;
-      }
-    };
-
-    // === INICIO ===
-    function init() {
-      FaceEngine.init();
-      scene = new THREE.Scene(); scene.background = new THREE.Color(0x121212); scene.fog = new THREE.Fog(0x121212, 50, 150);
-      camera = new THREE.PerspectiveCamera(45, container.clientWidth/container.clientHeight, 0.1, 1000);
-      camera.position.set(0, 45, 70); camera.lookAt(0,0,0);
-      
-      renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-      renderer.outputEncoding=THREE.sRGBEncoding;
-      container.appendChild(renderer.domElement);
-
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping=true; controls.maxPolarAngle=Math.PI/2-0.1; controls.minDistance=20; controls.maxDistance=150;
-
-      setupEnvironment();
-      setupPopulation30(); // Cargar las 30 figuras
-      setupEvents();
-
-      document.getElementById('loader').style.opacity=0; setTimeout(()=>document.getElementById('loader').remove(),500);
-      animate();
-    }
-
-    function setupEnvironment() {
-      // Suelo de madera oscura
-      const floorTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/hardwood2_diffuse.jpg');
-      floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping; floorTex.repeat.set(8,8);
-      const floorMat = new THREE.MeshStandardMaterial({map:floorTex, roughness:0.8, color:0x888888});
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(100,100), floorMat);
-      floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-
-      // Paredes y Estantería
-      const wallMat = new THREE.MeshStandardMaterial({color:0x2a2a2a});
-      const backWall = new THREE.Mesh(new THREE.PlaneGeometry(100,30), wallMat);
-      backWall.position.set(0,15,-40); floor.receiveShadow=true; scene.add(backWall);
-      
-      const shelfMat = new THREE.MeshStandardMaterial({color:0x3d2b1f});
-      [5, 10, 15].forEach(y => {
-          const shelf = new THREE.Mesh(new THREE.BoxGeometry(90, 0.5, 4), shelfMat);
-          shelf.position.set(0, y, -38); shelf.receiveShadow=true; scene.add(shelf);
-      });
-
-      // Iluminación Cálida
-      const amb = new THREE.AmbientLight(0xffffff, 0.5); scene.add(amb);
-      const spot = new THREE.SpotLight(0xffd5a1, 1.2);
-      spot.position.set(30, 60, 30); spot.castShadow=true; spot.shadow.mapSize.set(2048,2048);
-      scene.add(spot);
-
-      // Anillo selección
-      selectionRing = new THREE.Mesh(new THREE.RingGeometry(1.7,1.9,32), new THREE.MeshBasicMaterial({color:0xd4af37, side:THREE.DoubleSide, transparent:true, opacity:0.8}));
-      selectionRing.rotation.x=-Math.PI/2; selectionRing.visible=false; scene.add(selectionRing);
-    }
-
-    // --- POBLACIÓN LATINOAMERICANA (30 FIGURAS) ---
-    function setupPopulation30() {
-      // Definición de 30 prototipos representativos
-      const pop = [
-        // Fila Superior (Ancianos y Adultos Mayores) - Y=15
-        {g:'m',a:'elder',s:'#3b2416',c:'#fff',h:'#ddd',e:'calmado',y:15}, // Afro-anciano
-        {g:'f',a:'elder',s:'#8d5524',c:'#7c2d12',h:'#bbb',e:'neutro',y:15}, // Anciana Andina
-        {g:'m',a:'elder',s:'#ffcd94',c:'#333',h:'#eee',e:'triste',y:15}, // Anciano Europeo
-        {g:'f',a:'elder',s:'#c68642',c:'#b71c1c',h:'#ccc',e:'alegre',y:15}, // Abuela Mestiza
-        {g:'m',a:'adult',s:'#5d4037',c:'#15803d',h:'#111',e:'serio',y:15},
-        {g:'f',a:'adult',s:'#dcb898',c:'#1d4ed8',h:'#333',e:'neutro',y:15},
-        {g:'m',a:'adult',s:'#8d5524',c:'#eab308',h:'#000',e:'picaron',y:15},
-        {g:'f',a:'adult',s:'#ffcd94',c:'#000',h:'#5d4037',e:'enojado',y:15},
-        {g:'m',a:'elder',s:'#4a2c2a',c:'#fff',h:'#aaa',e:'neutro',y:15},
-        {g:'f',a:'elder',s:'#eec1ad',c:'#555',h:'#fff',e:'calmado',y:15},
-
-        // Fila Media (Adultos y Jóvenes) - Y=10
-        {g:'f',a:'adult',s:'#3b2416',c:'#eab308',h:'#000',e:'efusivo',y:10}, // Afro-latina alegre
-        {g:'m',a:'adult',s:'#c68642',c:'#b71c1c',h:'#111',e:'iracundo',y:10}, 
-        {g:'f',a:'adult',s:'#ffcd94',c:'#1d4ed8',h:'#eab308',e:'neutro',y:10},
-        {g:'m',a:'adult',s:'#5d4037',c:'#fff',h:'#000',e:'alegre',y:10},
-        {g:'f',a:'adult',s:'#8d5524',c:'#7c2d12',h:'#111',e:'triste',y:10},
-        {g:'m',a:'adult',s:'#dcb898',c:'#333',h:'#333',e:'neutro',y:10},
-        {g:'f',a:'adult',s:'#eec1ad',c:'#ec4899',h:'#5d4037',e:'picaron',y:10},
-        {g:'m',a:'adult',s:'#4a2c2a',c:'#15803d',h:'#000',e:'serio',y:10},
-        {g:'f',a:'adult',s:'#c68642',c:'#fff',h:'#111',e:'alegre',y:10},
-        {g:'m',a:'adult',s:'#ffcd94',c:'#000',h:'#eab308',e:'enojado',y:10},
-
-        // Fila Inferior (Niños y Bebés) - Y=5
-        {g:'m',a:'child',s:'#8d5524',c:'#b71c1c',h:'#000',e:'alegre',y:5}, // Niño indígena
-        {g:'f',a:'child',s:'#ffcd94',c:'#ec4899',h:'#eab308',e:'efusivo',y:5}, // Niña rubia
-        {g:'m',a:'child',s:'#3b2416',c:'#eab308',h:'#000',e:'picaron',y:5}, // Niño afro
-        {g:'f',a:'child',s:'#c68642',c:'#1d4ed8',h:'#333',e:'neutro',y:5},
-        {g:'m',a:'child',s:'#5d4037',c:'#fff',h:'#111',e:'triste',y:5},
-        {g:'f',a:'child',s:'#dcb898',c:'#7c2d12',h:'#5d4037',e:'alegre',y:5},
-        {g:'baby',a:'baby',s:'#ffcd94',c:'#fff',h:'#ddd',e:'neutro',y:5}, // Bebés
-        {g:'baby',a:'baby',s:'#8d5524',c:'#eab308',h:'#111',e:'alegre',y:5},
-        {g:'baby',a:'baby',s:'#3b2416',c:'#1d4ed8',h:'#000',e:'triste',y:5},
-        {g:'baby',a:'baby',s:'#c68642',c:'#ec4899',h:'#333',e:'neutro',y:5}
-      ];
-
-      const startX = -25; const gap = 5.5;
-      pop.forEach((def, i) => {
-        const row = Math.floor(i/10);
-        const col = i%10;
-        const x = startX + (col * gap);
-        spawnDoll({gender:def.g, age:def.a, skin:def.s, clothes:def.c, hair:def.h, exp:def.e}, x, def.y, -38);
-      });
-    }
-
-    // --- SPAWNER DE MUÑECOS ---
-    const geoHead=new THREE.SphereGeometry(0.65,32,32);
-    const geoTorsoM=new THREE.CylinderGeometry(0.9,1.2,1.8,4);
-    const geoTorsoF=new THREE.CylinderGeometry(0.7,1.1,1.6,4);
-    const geoLimb=new THREE.CylinderGeometry(0.25,0.25,0.9,16);
-
-    function spawnDoll(def, x, y, z) {
-      const group = new THREE.Group();
-      group.userData = { isDoll:true, homeX:x, homeY:y, homeZ:z, age:def.age };
-      
-      const matCloth = new THREE.MeshStandardMaterial({color:def.clothes, roughness:0.6});
-      const faceTex = FaceEngine.createTexture(def);
-      const matFace = new THREE.MeshStandardMaterial({map:faceTex, roughness:0.5});
-      const matHair = new THREE.MeshStandardMaterial({color:def.hair, roughness:0.9});
-
-      const head = new THREE.Mesh(geoHead, matFace); head.position.y=2.4; head.rotation.y=-Math.PI/2; head.castShadow=true; group.add(head);
-      
-      let hair;
-      if(def.age==='elder') hair=new THREE.Mesh(new THREE.CylinderGeometry(0.68,0.68,0.2,32), matHair);
-      else hair=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.5,1.4), matHair);
-      hair.position.y=2.95; group.add(hair);
-
-      const isFem = def.gender==='f';
-      const torso = new THREE.Mesh(isFem?geoTorsoF:geoTorsoM, matCloth);
-      torso.position.y=1.5; torso.rotation.y=Math.PI/4; torso.castShadow=true;
-      if(isFem) torso.scale.set(0.9,1,0.8); group.add(torso);
-
-      const legL=new THREE.Mesh(geoLimb,matCloth);legL.position.set(-0.4,0.5,0);group.add(legL);
-      const legR=new THREE.Mesh(geoLimb,matCloth);legR.position.set(0.4,0.5,0);group.add(legR);
-
-      if(def.age==='child') group.scale.set(0.65,0.65,0.65);
-      if(def.age==='baby') group.scale.set(0.4,0.4,0.4);
-      if(def.age==='elder') { group.scale.set(0.95,0.9,0.95); group.rotation.x=0.1; }
-
-      group.position.set(x, y+0.1, z);
-      scene.add(group); objects.push(group);
-    }
-
-    // --- INTERACCIÓN Y EVENTOS (SOLUCIÓN AL ARRASTRE) ---
-    function setupEvents() {
-      raycaster = new THREE.Raycaster(); mouse = new THREE.Vector2();
-
-      // Lógica del Builder (Panel Lateral)
-      document.getElementById('btnSpawn').onclick = () => {
-        const genParts = document.getElementById('newGender').value.split('_');
-        const def = {
-          gender: genParts[0], age: genParts[1],
-          skin: document.getElementById('newSkin').value,
-          clothes: document.getElementById('newClothes').value,
-          hair: '#333', // Pelo genérico para el builder por simplicidad
-          exp: document.getElementById('newExp').value
-        };
-        spawnDoll(def, (Math.random()-0.5)*10, 0, (Math.random()-0.5)*10);
-      };
-
-      // Lógica del Mouse/Touch (ARRASTRE ARREGLADO)
-      const updateMouse=(e)=>{
-        const rect = container.getBoundingClientRect();
-        mouse.x = ((e.clientX - rect.left)/rect.width)*2-1;
-        mouse.y = -((e.clientY - rect.top)/rect.height)*2+1;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ConstelArte 3D | Tablero Neutro</title>
+    <style>
+      :root {
+        color-scheme: light;
       }
 
-      const onDown = (e) => {
-        e.preventDefault(); updateMouse(e.touches?e.touches[0]:e);
-        raycaster.setFromCamera(mouse, camera);
-        const ints = raycaster.intersectObjects(objects, true);
-        if(ints.length>0){
-          let t=ints[0].object; while(t.parent&&!t.userData.isDoll)t=t.parent;
-          if(t.userData.isDoll){
-            isDragging=true; draggedObject=t; controls.enabled=false; // CRÍTICO: Desactivar controles al arrastrar
-            selectObject(t); draggedObject.position.y=Math.max(0, draggedObject.position.y);
-          }
-        } else { deselect(); }
-      };
+      * {
+        box-sizing: border-box;
+      }
 
-      const onMove = (e) => {
-        e.preventDefault(); if(!isDragging) return;
-        updateMouse(e.touches?e.touches[0]:e);
-        raycaster.setFromCamera(mouse, camera);
-        const pt = new THREE.Vector3(); raycaster.ray.intersectPlane(dragPlane, pt);
-        if(pt) {
-          draggedObject.position.set(pt.x, draggedObject.position.y, pt.z);
-          selectionRing.position.set(pt.x, 0.05, pt.z);
-        }
-      };
+      body {
+        margin: 0;
+        background: #e8e8e8;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: #1e1e1e;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
 
-      const onUp = () => {
-        if(draggedObject) draggedObject.position.y = draggedObject.userData.homeY > 1 ? draggedObject.userData.homeY : 0; // Volver a estante o suelo
-        isDragging=false; draggedObject=null; controls.enabled=true; // Reactivar controles
-      };
+      header {
+        padding: 0.75rem 1.5rem;
+        background: #f7f7f7;
+        border-bottom: 1px solid #dcdcdc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-      container.addEventListener('mousedown', onDown); container.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
-      container.addEventListener('touchstart', onDown, {passive:false}); container.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('touchend', onUp);
+      h1 {
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0;
+      }
 
-      // UI Inferior
-      document.getElementById('rotSlider').oninput=(e)=>{if(selectedObject)selectedObject.rotation.y=e.target.value;};
-      document.getElementById('btnDelete').onclick=()=>{if(selectedObject){scene.remove(selectedObject);objects=objects.filter(o=>o!==selectedObject);deselect();}};
-      document.getElementById('btnReset').onclick=()=>{if(confirm('¿Reiniciar?')){objects.forEach(o=>{o.position.set(o.userData.homeX,o.userData.homeY+0.1,o.userData.homeZ);o.rotation.set(0,0,0);if(o.userData.age==='elder')o.rotation.x=0.1;});deselect();}};
-      document.getElementById('btnFoto').onclick=()=>{selectionRing.visible=false;renderer.render(scene,camera);const a=document.createElement('a');a.download='universo_latam.png';a.href=renderer.domElement.toDataURL();a.click();selectionRing.visible=true;};
-    }
+      .hint {
+        font-size: 0.9rem;
+        color: #4a4a4a;
+      }
 
-    function selectObject(obj){ selectedObject=obj; selectionRing.visible=true; selectionRing.position.set(obj.position.x,0.05,obj.position.z); document.getElementById('rotSlider').value=obj.rotation.y; }
-    function deselect(){ selectedObject=null; selectionRing.visible=false; }
-    function animate(){ requestAnimationFrame(animate); if(selectionRing.visible)selectionRing.rotation.z-=0.02; controls.update(); renderer.render(scene,camera); }
-    window.onresize=()=>{camera.aspect=container.clientWidth/container.clientHeight;camera.updateProjectionMatrix();renderer.setSize(container.clientWidth,container.clientHeight);};
+      #board {
+        position: relative;
+        flex: 1;
+        width: 100%;
+      }
 
-    init();
-  </script>
-</body>
+      .footer {
+        padding: 0.75rem 1.5rem;
+        background: #f7f7f7;
+        border-top: 1px solid #dcdcdc;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>ConstelArte 3D · Tablero Neutro</h1>
+      <p class="hint">Rotar/orbitar con el mouse. La escena es un lienzo neutral.</p>
+    </header>
+
+    <main id="board"></main>
+
+    <footer class="footer">
+      Espacio base para constelaciones familiares sistémicas. Sin elementos añadidos.
+    </footer>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
 </html>
