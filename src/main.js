@@ -5,6 +5,7 @@ import { addLights } from './lights.js';
 import { createRenderer } from './renderer.js';
 import { createControls } from './controls.js';
 import { MunecoManager } from './board/munecoManager.js';
+import { crearMuneco } from './munecos.js';
 
 const container = document.getElementById('board');
 
