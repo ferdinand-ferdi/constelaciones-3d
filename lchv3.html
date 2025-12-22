@@ -187,6 +187,24 @@
       white-space: nowrap;
       border: 1px solid #e5e7eb;
     }
+
+    #btnDeleteFloating {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      border: 1px solid #e5e7eb;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      padding: 8px 10px;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    #btnDeleteFloating:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+    }
   </style>
 
   <script type="importmap">
@@ -321,17 +339,19 @@
 
       <p class="hint">
         Interacción:
-        <br>• Click + arrastrar sobre un muñeco: moverlo
-        <br>• Click largo: girar
-        <br>• Click derecho / arrastre vacío: cámara
-        <br>• Rueda / pinza: zoom
+        <br>• Click para seleccionar
+        <br>• Arrastra para mover (plano X/Z)
+        <br>• Shift + arrastre: rotar sobre Y
+        <br>• Tecla R: giro incremental
+        <br>• Supr/Backspace o 🗑️: borrar selección
       </p>
     </aside>
 
     <main id="canvas-container">
       <div id="instructions">
-        Arrastra muñecos en el salón · Click largo para girar
+        Click para seleccionar · Arrastra para mover · Shift + arrastre rota · R rota 22.5° · Supr borra
       </div>
+      <button id="btnDeleteFloating" title="Eliminar selección">🗑️</button>
     </main>
   </div>
 
@@ -363,8 +383,10 @@
     let selectedObject = null;
     let isDragging = false;
     let draggedObject = null;
-    let longPressTimer = null;
-    const LONG_PRESS_DELAY = 500;
+    let isRotating = false;
+    let rotateStartX = 0;
+    let rotateStartY = 0;
+    let selectionHelper = null;
 
     // === GEOMETRÍAS COMPARTIDAS ===
     const geoHead = new THREE.SphereGeometry(0.55, 32, 32);
@@ -556,40 +578,6 @@
     // === INTERACCIÓN ===
     function setupInteraction() {
       const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-      const dragBoundsRaycaster = new THREE.Raycaster();
-
-      function calculateDragBounds() {
-        const ndcCorners = [
-          new THREE.Vector2(-1, -1),
-          new THREE.Vector2(1, -1),
-          new THREE.Vector2(-1, 1),
-          new THREE.Vector2(1, 1)
-        ];
-
-        const intersectPoint = new THREE.Vector3();
-        const bounds = {
-          minX: Infinity,
-          maxX: -Infinity,
-          minZ: Infinity,
-          maxZ: -Infinity
-        };
-
-        for (const corner of ndcCorners) {
-          dragBoundsRaycaster.setFromCamera(corner, camera);
-          if (dragBoundsRaycaster.ray.intersectPlane(dragPlane, intersectPoint)) {
-            bounds.minX = Math.min(bounds.minX, intersectPoint.x);
-            bounds.maxX = Math.max(bounds.maxX, intersectPoint.x);
-            bounds.minZ = Math.min(bounds.minZ, intersectPoint.z);
-            bounds.maxZ = Math.max(bounds.maxZ, intersectPoint.z);
-          }
-        }
-
-        if (!Number.isFinite(bounds.minX)) {
-          return null;
-        }
-
-        return bounds;
-      }
 
       function getPointer(e) {
         if (e.changedTouches && e.changedTouches.length > 0) return e.changedTouches[0];
@@ -598,7 +586,6 @@
 
       function onDown(e) {
         e.preventDefault();
-        if (longPressTimer) clearTimeout(longPressTimer);
 
         const pointer = getPointer(e);
         const rect = container.getBoundingClientRect();
@@ -619,35 +606,38 @@
           }
 
           if (objects.includes(target)) {
-            longPressTimer = setTimeout(() => {
-              target.rotation.y += Math.PI / 4;
-              isDragging = false;
-              if (draggedObject) {
-                draggedObject.position.y = draggedObject.userData.baseHeight || 0;
-                draggedObject = null;
-              }
-              controls.enabled = true;
-              longPressTimer = null;
-            }, LONG_PRESS_DELAY);
+            selectObject(target);
+
+            if (e.shiftKey) {
+              isRotating = true;
+              controls.enabled = false;
+              rotateStartX = pointer.clientX;
+              rotateStartY = target.rotation.y;
+              return;
+            }
 
             isDragging = true;
             draggedObject = target;
             controls.enabled = false;
-            selectObject(target);
             target.position.y = (target.userData.baseHeight || 0) + 0.4;
           }
+        } else {
+          selectObject(null);
         }
       }
 
       function onMove(e) {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          longPressTimer = null;
+        const pointer = getPointer(e);
+
+        if (isRotating && selectedObject) {
+          const deltaX = pointer.clientX - rotateStartX;
+          selectedObject.rotation.y = rotateStartY + deltaX * 0.01;
+          return;
         }
+
         if (!isDragging || !draggedObject) return;
         e.preventDefault();
 
-        const pointer = getPointer(e);
         const rect = container.getBoundingClientRect();
         mouse.x = ((pointer.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((pointer.clientY - rect.top) / rect.height) * 2 + 1;
@@ -657,18 +647,18 @@
         raycaster.ray.intersectPlane(dragPlane, intersectPoint);
 
         if (intersectPoint) {
-          const bounds = calculateDragBounds();
-          if (!bounds) return;
-
-          draggedObject.position.x = THREE.MathUtils.clamp(intersectPoint.x, bounds.minX, bounds.maxX);
-          draggedObject.position.z = THREE.MathUtils.clamp(intersectPoint.z, bounds.minZ, bounds.maxZ);
+          const maxX = 18;
+          const maxZ = 11;
+          draggedObject.position.x = THREE.MathUtils.clamp(intersectPoint.x, -maxX, maxX);
+          draggedObject.position.z = THREE.MathUtils.clamp(intersectPoint.z, -maxZ, maxZ);
         }
       }
 
       function onUp() {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          longPressTimer = null;
+        if (isRotating) {
+          controls.enabled = true;
+          isRotating = false;
+          return;
         }
         if (draggedObject) {
           draggedObject.position.y = draggedObject.userData.baseHeight || 0;
@@ -690,9 +680,19 @@
     function selectObject(obj) {
       if (selectedObject && selectedObject !== obj) {
         setEmissive(selectedObject, 0x000000);
+        if (selectionHelper) {
+          scene.remove(selectionHelper);
+          selectionHelper = null;
+        }
       }
       selectedObject = obj;
-      setEmissive(obj, 0x444444);
+      if (obj) {
+        setEmissive(obj, 0x222222);
+        selectionHelper = new THREE.BoxHelper(obj, 0x3b82f6);
+        selectionHelper.material.transparent = true;
+        selectionHelper.material.opacity = 0.6;
+        scene.add(selectionHelper);
+      }
     }
 
     function setEmissive(obj, colorHex) {
@@ -1165,20 +1165,32 @@
       link.click();
     });
 
-    btnBorrar.addEventListener('click', () => {
+    function deleteSelected() {
       if (selectedObject) {
+        if (selectionHelper) {
+          scene.remove(selectionHelper);
+          selectionHelper = null;
+        }
         scene.remove(selectedObject);
         const idx = objects.indexOf(selectedObject);
         if (idx > -1) objects.splice(idx, 1);
         selectedObject = null;
       }
-    });
+    }
+
+    btnBorrar.addEventListener('click', deleteSelected);
+    const btnDeleteFloating = document.getElementById('btnDeleteFloating');
+    btnDeleteFloating.addEventListener('click', deleteSelected);
 
     btnReset.addEventListener('click', () => {
       if (!confirm('¿Limpiar toda la escena?')) return;
       for (const obj of objects) scene.remove(obj);
       objects = [];
       selectedObject = null;
+      if (selectionHelper) {
+        scene.remove(selectionHelper);
+        selectionHelper = null;
+      }
     });
 
     // === RESIZE ===
@@ -1188,10 +1200,25 @@
       renderer.setSize(container.clientWidth, container.clientHeight);
     });
 
+    window.addEventListener('keydown', (e) => {
+      const activeTag = document.activeElement?.tagName;
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(activeTag)) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        deleteSelected();
+      }
+      if (e.key.toLowerCase() === 'r' && selectedObject) {
+        selectedObject.rotation.y += Math.PI / 8;
+      }
+    });
+
     // === LOOP ===
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
+      if (selectionHelper && selectedObject) {
+        selectionHelper.update();
+      }
       renderer.render(scene, camera);
     }
 
