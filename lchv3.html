@@ -556,6 +556,40 @@
     // === INTERACCIÓN ===
     function setupInteraction() {
       const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const dragBoundsRaycaster = new THREE.Raycaster();
+
+      function calculateDragBounds() {
+        const ndcCorners = [
+          new THREE.Vector2(-1, -1),
+          new THREE.Vector2(1, -1),
+          new THREE.Vector2(-1, 1),
+          new THREE.Vector2(1, 1)
+        ];
+
+        const intersectPoint = new THREE.Vector3();
+        const bounds = {
+          minX: Infinity,
+          maxX: -Infinity,
+          minZ: Infinity,
+          maxZ: -Infinity
+        };
+
+        for (const corner of ndcCorners) {
+          dragBoundsRaycaster.setFromCamera(corner, camera);
+          if (dragBoundsRaycaster.ray.intersectPlane(dragPlane, intersectPoint)) {
+            bounds.minX = Math.min(bounds.minX, intersectPoint.x);
+            bounds.maxX = Math.max(bounds.maxX, intersectPoint.x);
+            bounds.minZ = Math.min(bounds.minZ, intersectPoint.z);
+            bounds.maxZ = Math.max(bounds.maxZ, intersectPoint.z);
+          }
+        }
+
+        if (!Number.isFinite(bounds.minX)) {
+          return null;
+        }
+
+        return bounds;
+      }
 
       function getPointer(e) {
         if (e.changedTouches && e.changedTouches.length > 0) return e.changedTouches[0];
@@ -623,10 +657,11 @@
         raycaster.ray.intersectPlane(dragPlane, intersectPoint);
 
         if (intersectPoint) {
-          const maxX = 18;
-          const maxZ = 11;
-          draggedObject.position.x = THREE.MathUtils.clamp(intersectPoint.x, -maxX, maxX);
-          draggedObject.position.z = THREE.MathUtils.clamp(intersectPoint.z, -maxZ, maxZ);
+          const bounds = calculateDragBounds();
+          if (!bounds) return;
+
+          draggedObject.position.x = THREE.MathUtils.clamp(intersectPoint.x, bounds.minX, bounds.maxX);
+          draggedObject.position.z = THREE.MathUtils.clamp(intersectPoint.z, bounds.minZ, bounds.maxZ);
         }
       }
 
