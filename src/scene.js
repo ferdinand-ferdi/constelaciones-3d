@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.m
 
 /**
  * Creates a neutral scene with a large floor plane and grid.
+ * @returns {THREE.Scene}
  */
 export function createScene() {
   const scene = new THREE.Scene();

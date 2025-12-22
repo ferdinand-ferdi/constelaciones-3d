@@ -4,7 +4,8 @@ import { createCamera } from './camera.js';
 import { addLights } from './lights.js';
 import { createRenderer } from './renderer.js';
 import { createControls } from './controls.js';
-import { applyDollState, createDoll, createSelectionRing, getDollRoot, serializeDoll } from './dolls.js';
+import { MunecoManager } from './board/munecoManager.js';
+import { crearMuneco } from './munecos.js';
 
 const container = document.getElementById('board');
 const addDollButton = document.getElementById('addDoll');
@@ -15,27 +16,21 @@ const applyRotationButton = document.getElementById('applyRotation');
 const dollColorInput = document.getElementById('dollColor');
 const statusBox = document.getElementById('status');
 
-const scene = createScene();
-const camera = createCamera(container);
-const renderer = createRenderer(container);
-addLights(scene);
+const stageManager = new StageManager(container);
+const interactionManager = new InteractionManager(stageManager);
 
 const controls = createControls(camera, renderer);
+const munecoManager = new MunecoManager(scene);
 const axes = new THREE.AxesHelper(3);
 axes.visible = false; // Toggle to true while debugging orientation
 scene.add(axes);
 
-const selectionRing = createSelectionRing();
-scene.add(selectionRing);
-
-const dolls = new Map();
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-const dragOffset = new THREE.Vector3();
-let dragging = false;
-let selectedDoll = null;
-const STORAGE_KEY = 'constelarte:dolls';
+// Agrega un muñeco inicial para mostrar el uso del gestor.
+munecoManager.addMuneco('cubo', {
+  position: { x: 0, y: 0.5, z: 0 },
+  color: 0xff7043,
+  size: 1.2,
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = container.clientWidth / container.clientHeight;

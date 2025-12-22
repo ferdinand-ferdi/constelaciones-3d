@@ -1,5 +1,10 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
 
+/**
+ * Create a WebGL renderer and attach it to the target container.
+ * @param {HTMLElement} container - Element that hosts the rendering canvas.
+ * @returns {THREE.WebGLRenderer}
+ */
 export function createRenderer(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
