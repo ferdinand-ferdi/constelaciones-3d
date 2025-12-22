@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ConstelArte 3D | Tablero Neutro</title>
+    <title>ConstelArte 3D | Tablero con muñecos</title>
     <style>
       :root {
         color-scheme: light;
@@ -30,6 +30,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 1rem;
       }
 
       h1 {
@@ -50,6 +51,97 @@
         width: 100%;
       }
 
+      .controls {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid #dcdcdc;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        padding: 0.75rem;
+        width: min(320px, 90vw);
+      }
+
+      .controls h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+      }
+
+      .control-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .control-row label {
+        font-size: 0.85rem;
+        color: #444;
+      }
+
+      .control-row input[type='color'] {
+        width: 48px;
+        height: 34px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0;
+      }
+
+      .control-row select,
+      .control-row button {
+        font-size: 0.9rem;
+        border-radius: 10px;
+        border: 1px solid #cfcfcf;
+        padding: 0.5rem 0.75rem;
+        background: #fff;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+      }
+
+      .control-row button {
+        background: linear-gradient(135deg, #2563eb, #38bdf8);
+        color: #f8fafc;
+        border: none;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.28);
+      }
+
+      .control-row button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.35);
+      }
+
+      .control-row button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        box-shadow: none;
+      }
+
+      .pill {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #312e81;
+        border: 1px solid #c7d2fe;
+        margin-right: 0.25rem;
+      }
+
+      .status {
+        font-size: 0.85rem;
+        color: #374151;
+        line-height: 1.4;
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e5e7eb;
+      }
+
       .footer {
         padding: 0.75rem 1.5rem;
         background: #f7f7f7;
@@ -60,14 +152,54 @@
   </head>
   <body>
     <header>
-      <h1>ConstelArte 3D · Tablero Neutro</h1>
-      <p class="hint">Rotar/orbitar con el mouse. La escena es un lienzo neutral.</p>
+      <h1>ConstelArte 3D · Tablero con muñecos interactivos</h1>
+      <p class="hint">La base se mantiene neutra: plano amplio y grid. Añade y mueve muñecos sin alterar el tablero.</p>
     </header>
 
-    <main id="board"></main>
+    <main id="board">
+      <section class="controls" aria-label="Panel de muñecos">
+        <h2>Muñecos interactivos</h2>
+
+        <div class="control-row">
+          <label for="dollColor">Color</label>
+          <input id="dollColor" type="color" value="#2563eb" aria-label="Color del muñeco" />
+          <button id="addDoll" type="button">Agregar muñeco</button>
+        </div>
+
+        <div class="control-row">
+          <label for="rotation">Rotación</label>
+          <select id="rotation" aria-label="Rotación del muñeco">
+            <option value="0">0°</option>
+            <option value="45">45°</option>
+            <option value="90">90°</option>
+            <option value="135">135°</option>
+            <option value="180">180°</option>
+            <option value="225">225°</option>
+            <option value="270">270°</option>
+            <option value="315">315°</option>
+          </select>
+          <button id="applyRotation" type="button">Aplicar</button>
+        </div>
+
+        <div class="control-row">
+          <button id="deleteDoll" type="button" disabled>Eliminar seleccionado</button>
+          <button id="clearAll" type="button">Limpiar muñecos</button>
+        </div>
+
+        <div class="status" id="status">
+          Estado auto-guardado en este navegador. Arrastra para mover; click para seleccionar.
+        </div>
+
+        <div>
+          <span class="pill">💾 Guardado local</span>
+          <span class="pill">🖱️ Arrastrar para mover</span>
+          <span class="pill">↻ Rotación por grados</span>
+        </div>
+      </section>
+    </main>
 
     <footer class="footer">
-      Espacio base para constelaciones familiares sistémicas. Sin elementos añadidos.
+      La base del tablero permanece neutra: plano amplio, grid visible y luces suaves. Los muñecos se guardan en tu navegador.
     </footer>
 
     <script type="module" src="./src/main.js"></script>
