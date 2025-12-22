@@ -1,5 +1,11 @@
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js';
 
+/**
+ * Configure orbit controls for the provided camera and renderer.
+ * @param {import('https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js').PerspectiveCamera} camera - Camera to orbit.
+ * @param {import('https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js').WebGLRenderer} renderer - Renderer whose DOM element receives input events.
+ * @returns {OrbitControls}
+ */
 export function createControls(camera, renderer) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;

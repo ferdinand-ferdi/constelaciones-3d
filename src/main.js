@@ -9,10 +9,8 @@ import { crearMuneco } from './munecos.js';
 
 const container = document.getElementById('board');
 
-const scene = createScene();
-const camera = createCamera(container);
-const renderer = createRenderer(container);
-addLights(scene);
+const stageManager = new StageManager(container);
+const interactionManager = new InteractionManager(stageManager);
 
 const controls = createControls(camera, renderer);
 const munecoManager = new MunecoManager(scene);
