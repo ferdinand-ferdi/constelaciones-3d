@@ -1,5 +1,9 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
 
+/**
+ * Add a balanced light rig to the provided scene.
+ * @param {THREE.Scene} scene - Scene that receives all helper lights.
+ */
 export function addLights(scene) {
   const hemi = new THREE.HemisphereLight(0xffffff, 0xdedede, 0.65);
   scene.add(hemi);
