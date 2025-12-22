@@ -4,7 +4,8 @@ import { createCamera } from './camera.js';
 import { addLights } from './lights.js';
 import { createRenderer } from './renderer.js';
 import { createControls } from './controls.js';
-import { createDoll, moveDoll, rotateDoll, removeDoll, getBoardState } from './board-state.js';
+import { MunecoManager } from './board/munecoManager.js';
+import { crearMuneco } from './munecos.js';
 
 const container = document.getElementById('board');
 
@@ -14,20 +15,17 @@ const renderer = createRenderer(container);
 addLights(scene);
 
 const controls = createControls(camera, renderer);
+const munecoManager = new MunecoManager(scene);
 const axes = new THREE.AxesHelper(3);
 axes.visible = false; // Toggle to true while debugging orientation
 scene.add(axes);
 
-const boardApi = {
-  create: createDoll,
-  move: moveDoll,
-  rotate: rotateDoll,
-  remove: removeDoll,
-  getState: getBoardState
-};
-
-window.boardApi = boardApi;
-window.getBoardState = getBoardState;
+// Agrega un muñeco inicial para mostrar el uso del gestor.
+munecoManager.addMuneco('cubo', {
+  position: { x: 0, y: 0.5, z: 0 },
+  color: 0xff7043,
+  size: 1.2,
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = container.clientWidth / container.clientHeight;
