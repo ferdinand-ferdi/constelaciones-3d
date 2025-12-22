@@ -656,6 +656,7 @@
   let isDragging = false;
   let draggedCharacter = null;
   const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const dragBoundsRaycaster = new THREE.Raycaster();
 
   // === EXPRESIONES DISPONIBLES ===
   const EXPRESSIONS = [
@@ -1691,6 +1692,39 @@
     }
   }
 
+  function calculateDragBounds() {
+    const ndcCorners = [
+      new THREE.Vector2(-1, -1),
+      new THREE.Vector2(1, -1),
+      new THREE.Vector2(-1, 1),
+      new THREE.Vector2(1, 1)
+    ];
+
+    const intersectPoint = new THREE.Vector3();
+    const bounds = {
+      minX: Infinity,
+      maxX: -Infinity,
+      minZ: Infinity,
+      maxZ: -Infinity
+    };
+
+    for (const corner of ndcCorners) {
+      dragBoundsRaycaster.setFromCamera(corner, camera);
+      if (dragBoundsRaycaster.ray.intersectPlane(dragPlane, intersectPoint)) {
+        bounds.minX = Math.min(bounds.minX, intersectPoint.x);
+        bounds.maxX = Math.max(bounds.maxX, intersectPoint.x);
+        bounds.minZ = Math.min(bounds.minZ, intersectPoint.z);
+        bounds.maxZ = Math.max(bounds.maxZ, intersectPoint.z);
+      }
+    }
+
+    if (!Number.isFinite(bounds.minX)) {
+      return null;
+    }
+
+    return bounds;
+  }
+
   function onMouseMove(e) {
     if (!isDragging || !draggedCharacter) return;
     const rect = container.getBoundingClientRect();
@@ -1700,12 +1734,14 @@
     const intersect = new THREE.Vector3();
     raycaster.ray.intersectPlane(dragPlane, intersect);
     if (intersect) {
-      // Limitar movimiento dentro del área visible
-      const maxX = 18;
-      const maxZ = 12;
-      draggedCharacter.position.x = THREE.MathUtils.clamp(intersect.x, -maxX, maxX);
-      draggedCharacter.position.z = THREE.MathUtils.clamp(intersect.z, -maxZ, maxZ);
-      selectionRing.position.set(intersect.x, 0.05, intersect.z);
+      const bounds = calculateDragBounds();
+      if (!bounds) return;
+
+      const clampedX = THREE.MathUtils.clamp(intersect.x, bounds.minX, bounds.maxX);
+      const clampedZ = THREE.MathUtils.clamp(intersect.z, bounds.minZ, bounds.maxZ);
+      draggedCharacter.position.x = clampedX;
+      draggedCharacter.position.z = clampedZ;
+      selectionRing.position.set(clampedX, 0.05, clampedZ);
     }
   }
 
